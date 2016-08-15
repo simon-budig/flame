@@ -5,7 +5,9 @@ This is a small arduino sketch to drive a string of WS2812 LEDs wound around
 a tube, to simulate a flaming torch.
 
 I have carried around the torch on various events and it has proven quite
-popular and served as inspiration for other similiar builds.
+popular and served as inspiration for other similiar builds, see for example
+the work of Lukas, who expanded on the idea and added message scrolling:
+https://github.com/plan44/messagetorch
 
 This code is built for 5m LED strip with 64 led/m. The circumference of the
 tube is about 17-20 cm, so that after 12 leds one winding is complete.
