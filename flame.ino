@@ -21,14 +21,13 @@
 // Intensity buffer for flames and sparks
 static uint16_t flamebuffer[FLAME_HEIGHT][FLAME_WIDTH] = { { 0, }, };
 static uint16_t sparkbuffer[FLAME_WIDTH] = { 0, };
-static uint8_t framebuffer[NUM_PIXELS * 4] = { 0, };
 
 // Gamma-Lookup-Table
 static uint8_t glut[256];
 
 // Neo-Pixel Framebuffer
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel (NUM_PIXELS, PIN_LED,
-                                              NEO_GRB | NEO_KHZ800, framebuffer);
+                                              NEO_GRB | NEO_KHZ800);
 
 // Function to show the torch flame
 void
