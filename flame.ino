@@ -1,5 +1,5 @@
 /*
- * Flaming Torch  (c) 2013-2014 Simon Budig <simon@budig.de>
+ * Flaming Torch  (c) 2013-2019 Simon Budig <simon@budig.de>
  */
 
 #include <EEPROM.h>
@@ -10,7 +10,7 @@
 
 #define PIN_BUTTON   3  // Input pin für Button
 #define PIN_LED      2  // Output pin für Led-Strip
-#define NUM_PIXELS (1 * 30)
+#define NUM_PIXELS (5 * 64)
 
 #define NUM_MODES 6
 
@@ -271,8 +271,6 @@ setup ()
 
 
 // Arduino Loop function. Repeats continuously
-// (for Leonardo there is some USB-Handling implicitely inbetween,
-// for some reason the bootloader isn't entered properly.
 
 void
 loop ()
@@ -281,11 +279,63 @@ loop ()
   static uint16_t t = 0xffff;
   static uint8_t pressed = 0;
   static uint8_t state = 0xff;
+  uint8_t delay_value = 0;
 
+#ifdef MAGIC_KEY_POS
+  // for atmega32u4 based Arduinos:
+  //
+  // check if the bootloader has been activated.
+  // avoid doing any rendering to prevent the
+  // MAGIC_KEY getting overridden which in turn
+  // would prevent entering the bootloader properly.
+
+  if (*((uint16_t *) MAGIC_KEY_POS) == MAGIC_KEY &&
+      WDTCSR & (1 << WDE))
+    {
+      return;
+    }
+#endif
+    
   if (state >= NUM_MODES)
     state = EEPROM.read(0);
   if (state >= NUM_MODES)
     state = 0;
+
+#ifdef MAGIC_KEY_POS
+  // Now, this is quite unfortunate:
+  //
+  // for the atmege32u4 based arduinos (Leonardo, pro micro etc.)
+  // entering the bootloader is initiated in the USB interrupt
+  // handler (i.e. can happen at any time).
+  //
+  // This does two things: writes MAGIC_KEY to MAGIC_KEY_POS and
+  // enables the watchdog reset.
+  //
+  // If the watchdog fires the atmega32u4 resets and the bootloader
+  // code checks for the MAGIC_KEY at MAGIC_KEY_POS. If it finds
+  // the MAGIC_KEY it sticks in the bootloader mode.
+  //
+  // for larger LED strips it is quite likely that MAGIC_KEY_POS
+  // resides in the middle of the framebuffer. And if the USB interrupt
+  // happens while the code is rendering stuff to the framebuffer,
+  // it then might happen that the MAGIC_KEY immediately gets overwritten
+  // by the rendering code. This prevents that the bootloader gets
+  // entered upon the watchdog reset. For some effects the AVR is mostly
+  // rendering, making it basically impossible to enter the bootloader
+  // via the IDE.
+  //
+  // As a workaround we disable all interrupts during the rendering code
+  // which is quite a brute force method. This delays the writing of the
+  // MAGIC_KEY to the point of the sei() (since this is now the point where
+  // the USB interrupt gets handled), giving the MAGIC_KEY precedence over
+  // the rendered effect.
+  //
+  // and since we basically avoid running loop() when the
+  // bootloader-conditions are met (see above) the switch to the bootloader
+  // now is more reliable again.
+
+  cli ();
+#endif
 
   switch (state)
     {
@@ -295,32 +345,44 @@ loop ()
 
       case 1:
         render_blueyellow (t);
-        delay (10);
+        delay_value = 10;
         break;
 
       case 2:
         render_rainbow (t);
-        delay (10);
+        delay_value = 10;
         break;
 
       case 3:
         render_redblue (t);
-        delay (10);
+        delay_value = 10;
         break;
 
       case 4:
         render_kitt (t);
-        delay (20);
+        delay_value = 20;
         break;
         
       case 5:
         render_rgbsparks (t);
-        delay (10);
+        delay_value = 10;
         break;
 
       default:
         render_flame ();
         break;
+    }
+
+#ifdef MAGIC_KEY_POS
+  sei ();
+#endif
+
+  // the actual delay relies on interupts, hence
+  // we have to do the per-frame-waiting after the sei();
+  
+  if (delay_value)
+    {
+      delay (delay_value);
     }
 
   // Time-Tick. Needed for moving stripes
@@ -354,5 +416,3 @@ loop ()
       pressed = 5;
     }
 }
-
-
