@@ -147,12 +147,13 @@ render_kitt (const uint16_t t)
   static uint8_t basecolor = 0;
   uint16_t i;
   uint16_t pos, pos2, p;
+  uint8_t *pixdata = pixels.getPixels ();
 
   pos = (t*2) % (NUM_PIXELS * 2 - 2);
   
   for (i = 0; i < NUM_PIXELS * 3; i++)
     {
-      pixels.pixels[i] = (((uint16_t) pixels.pixels[i]) * 7) / 8;
+      pixdata[i] = (((uint16_t) pixdata[i]) * 7) / 8;
     }
 
   if (pos >= NUM_PIXELS)
